@@ -208,6 +208,106 @@ services:
   #   volumes:
   #     - ./spark/logs:/opt/spark/logs   # same mount as master + worker
 
+  # ─────────────────────────────────────────
+  # POSTGRES
+  # Used as the metadata database for Airflow
+  # Port: 5432
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
+      interval: 10s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # AIRFLOW INIT
+  # One-shot container: runs DB migrations and creates the admin user,
+  # then exits. webserver/scheduler wait for it to succeed.
+  # ─────────────────────────────────────────
+  airflow-init:
+    image: apache/airflow:2.9.2
+    container_name: airflow-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-changeme}
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-admin}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    entrypoint: /bin/bash
+    command: -c "airflow db migrate && airflow users create --username $$_AIRFLOW_WWW_USER_USERNAME --password $$_AIRFLOW_WWW_USER_PASSWORD --firstname Admin --lastname User --role Admin --email admin@example.com"
+
+  # ─────────────────────────────────────────
+  # AIRFLOW WEBSERVER
+  # UI: http://localhost:8085
+  # Default login: admin / admin
+  # ─────────────────────────────────────────
+  airflow-webserver:
+    image: apache/airflow:2.9.2
+    container_name: airflow-webserver
+    hostname: airflow-webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8085:8080"    # Airflow UI
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-changeme}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: webserver
+
+  # ─────────────────────────────────────────
+  # AIRFLOW SCHEDULER
+  # Parses DAGs and triggers task instances
+  # ─────────────────────────────────────────
+  airflow-scheduler:
+    image: apache/airflow:2.9.2
+    container_name: airflow-scheduler
+    hostname: airflow-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-changeme}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: scheduler
+
 # This stores our kafka data/ messages and MinIO data into docker storage , otherwise if we run "docker compose down"
 # then everything will be deleted from kafka and minIo
 volumes:
@@ -215,3 +315,4 @@ volumes:
   kafka-2-data:
   kafka-3-data:
   minio-data:
+  postgres-data:
