@@ -31,7 +31,7 @@ class Shipment:
     ds_id:                   str            # Delivery Station for last-mile delivery
     current_status:          str            # Current stage from config.SHIPMENT_STATUSES
     promised_delivery_time:  str            # ISO-8601 UTC — set once at order creation, never changes
-    eta:                     str            # ISO-8601 UTC — recalculated at each stage transition
+    eta:                     str            # ISO-8601 UTC — set once at creation, only changes if delayed
 
     # Mutable fields — updated as the shipment progresses
     is_delayed:              bool           = False  # True if shipment is running behind ETA

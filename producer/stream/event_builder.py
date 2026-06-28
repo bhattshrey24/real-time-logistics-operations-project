@@ -8,9 +8,9 @@
 
 from models import Shipment
 from config import (
-    STATUS_EVENT_MAP,
     STAGE_TO_FACILITY_TYPE,
     FACILITY_TYPE_FC,
+    FACILITY_TYPE_DS,
 )
 from master_data import FULFILLMENT_CENTERS, DELIVERY_STATIONS
 from utils import now_utc, to_iso, next_event_id, jitter_coords
@@ -50,7 +50,8 @@ def build_shipment_event(shipment: Shipment) -> dict:
 
     Facility logic:
         FC stages (ORDER_ALLOCATED_TO_FC to DISPATCHED_FROM_FC) → facility = FC
-        DS stages (RECEIVED_AT_DS to DELIVERED)                 → facility = DS
+        DS stages (RECEIVED_AT_DS, ASSIGNED_TO_DRIVER)          → facility = DS
+        Last-mile (OUT_FOR_DELIVERY, DELIVERED)                 → facility = None (package is with driver)
 
     Vehicle logic:
         ORDER_ALLOCATED_TO_FC, PICKED_AND_PACKED → no vehicle yet         (None)
@@ -61,24 +62,26 @@ def build_shipment_event(shipment: Shipment) -> dict:
         promised_delivery_time → needed to calculate SLA breach
         customer_tier, delivery_type → needed to flag Prime / Same-Day shipments
         is_delayed, delay_minutes → pre-computed delay signals for alert consumers
-        latitude, longitude → jittered GPS near the current facility
+        latitude, longitude → jittered GPS near the current facility (or last known DS for last-mile stages)
     """
     status        = shipment.current_status
     facility_type = STAGE_TO_FACILITY_TYPE[status]
 
-    # Resolve facility and its base coordinates
+    # Resolve facility id and GPS base coordinates
     if facility_type == FACILITY_TYPE_FC:
-        facility_id = shipment.fc_id
-        facility    = FULFILLMENT_CENTERS[facility_id]
+        facility_id  = shipment.fc_id
+        gps_base     = FULFILLMENT_CENTERS[facility_id]
+    elif facility_type == FACILITY_TYPE_DS:
+        facility_id  = shipment.ds_id
+        gps_base     = DELIVERY_STATIONS[facility_id]
     else:
-        facility_id = shipment.ds_id
-        facility    = DELIVERY_STATIONS[facility_id]
+        # OUT_FOR_DELIVERY / DELIVERED: package is with the driver, no facility.
+        # Use DS coords as the GPS anchor since that's the last known fixed location.
+        facility_id  = None
+        gps_base     = DELIVERY_STATIONS[shipment.ds_id]
 
-    # GPS: small random offset around the facility (~1 km radius)
-    latitude, longitude = jitter_coords(facility["latitude"], facility["longitude"])
-
-    # event_type and shipment_status come from the central map in config.py
-    event_meta = STATUS_EVENT_MAP[status]
+    # GPS: small random offset around the base location (~1 km radius)
+    latitude, longitude = jitter_coords(gps_base["latitude"], gps_base["longitude"])
 
     return {
         # ── Core identifiers ──────────────────────────────────────────────────
@@ -88,8 +91,8 @@ def build_shipment_event(shipment: Shipment) -> dict:
         "order_id":               shipment.order_id,
 
         # ── Status fields ─────────────────────────────────────────────────────
-        "event_type":             event_meta["event_type"],       # What happened (transition)
-        "shipment_status":        event_meta["shipment_status"],  # Resulting state
+        "event_type":             status,
+        "shipment_status":        status,
 
         # ── Facility context ──────────────────────────────────────────────────
         "facility_id":            facility_id,

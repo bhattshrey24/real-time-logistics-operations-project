@@ -8,7 +8,6 @@ from datetime import datetime, timezone, timedelta
 
 from config import (
     SLA_HOURS,
-    ETA_OFFSET_MINUTES,
     ORDER_VALUE_RANGE,
     CUSTOMER_ID_RANGE,
     CUSTOMER_TIERS,
@@ -75,21 +74,17 @@ def calc_promised_time(order_time: datetime, delivery_type: str) -> str:
     return to_iso(order_time + timedelta(hours=hours))
 
 
-def calc_eta(current_time: datetime, status: str, delay_minutes: int = 0) -> str:
+def calc_eta(promised_delivery_time: str, delay_minutes: int = 0) -> str:
     """
-    Estimates the delivery time based on the current lifecycle stage.
+    Computes ETA from the promised delivery time plus any delay.
 
-    Logic:
-    - Looks up the base expected minutes remaining for this stage.
-    - Applies a ±5 minute jitter so ETAs aren't all identical.
-    - Adds any delay minutes on top (0 if shipment is on time).
+    ETA is fixed at creation and only changes if the shipment is delayed.
+    Stage transitions alone do not affect ETA.
 
     Returns an ISO-8601 UTC string.
     """
-    base_offset  = ETA_OFFSET_MINUTES[status]          # Expected mins remaining at this stage
-    jitter       = random.randint(-5, 5)                # Small randomness to feel realistic
-    total_offset = base_offset + jitter + delay_minutes # Delay stacks on top
-    return to_iso(current_time + timedelta(minutes=total_offset))
+    promised_dt = datetime.strptime(promised_delivery_time, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    return to_iso(promised_dt + timedelta(minutes=delay_minutes))
 
 
 # ── GPS HELPERS ───────────────────────────────────────────────────────────────
@@ -143,9 +138,9 @@ def random_delivery_type(customer_tier: str) -> str:
     return random.choices(DELIVERY_TYPES, weights=weights, k=1)[0]
 
 
-def sample_delay_minutes() -> int:
+def sample_delay_minutes(delivery_type: str) -> int:
     """
-    Returns a random delay duration in minutes within the configured range.
-    Used when a shipment is flagged as delayed.
+    Returns a random delay duration in minutes for the given delivery type.
+    SAME_DAY: 15–90 min.  STANDARD: 2–8 hours.
     """
-    return random.randint(*DELAY_RANGE_MINUTES)
+    return random.randint(*DELAY_RANGE_MINUTES[delivery_type])

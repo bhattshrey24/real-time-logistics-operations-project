@@ -82,11 +82,12 @@ def create_shipment() -> Shipment:
     customer_tier = random_customer_tier()
     delivery_type = random_delivery_type(customer_tier)
 
-    order_time = now_utc()
+    order_time             = now_utc()
+    promised_delivery_time = calc_promised_time(order_time, delivery_type)
 
     # Delay is decided once at creation — it persists through all stages
     is_delayed    = random.random() < DELAY_PROBABILITY
-    delay_minutes = sample_delay_minutes() if is_delayed else 0
+    delay_minutes = sample_delay_minutes(delivery_type) if is_delayed else 0
 
     shipment = Shipment(
         shipment_id            = next_shipment_id(),
@@ -98,8 +99,8 @@ def create_shipment() -> Shipment:
         fc_id                  = fc_id,
         ds_id                  = ds_id,
         current_status         = "ORDER_ALLOCATED_TO_FC",
-        promised_delivery_time = calc_promised_time(order_time, delivery_type),
-        eta                    = calc_eta(order_time, "ORDER_ALLOCATED_TO_FC", delay_minutes),
+        promised_delivery_time = promised_delivery_time,
+        eta                    = calc_eta(promised_delivery_time, delay_minutes),
         is_delayed             = is_delayed,
         delay_minutes          = delay_minutes,
     )
@@ -166,10 +167,8 @@ def advance_shipment(shipment_id: str) -> Optional[Shipment]:
 
     # ── COMMON UPDATE FOR ALL STAGES ──────────────────────────────────────────
     shipment.current_status = next_status
-
-    # ETA is recalculated from the current moment at each stage,
-    # carrying forward the delay that was decided at creation time
-    shipment.eta = calc_eta(now_utc(), next_status, shipment.delay_minutes)
+    # ETA does not change on stage transitions — it was fixed at creation.
+    # It would only be updated here if a new delay were detected mid-journey.
 
     return shipment
 
