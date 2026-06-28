@@ -1,7 +1,5 @@
-# state_manager.py
 # ─────────────────────────────────────────────────────────────────────────────
-# Manages the in-memory lifecycle of all active shipments.
-# This is the "brain" of the stream generator — all state changes happen here.
+# Manages the in-memory lifecycle of all active shipments. All state changes happen here.
 #
 # Public API (used by stream_producer.py):
 #   create_shipment()           → creates a new shipment at stage 0

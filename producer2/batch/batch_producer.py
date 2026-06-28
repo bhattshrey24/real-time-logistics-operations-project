@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Entry point for the batch (master data) producer.
+# Entry point for the batch producer.
 # Runs ONCE, publishes all static master data to Kafka, then exits cleanly.
 #
 # How to run (from the project root):
@@ -69,7 +69,7 @@ def publish(producer: Producer, topic: str, key: str, payload: dict) -> None:
         value    = json.dumps(payload),
         callback = delivery_report,
     )
-    producer.poll(0)  # Trigger delivery callbacks for already-sent messages
+    producer.poll(0)  # Trigger delivery callbacks i.e. tells kafka to run the callback when current message gets delivered and we get acknowledgement from broker
 
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
@@ -101,8 +101,9 @@ def main():
             publish(producer, TOPIC_VEHICLES, vehicle["vehicle_id"], vehicle)
         logger.info(f"Published {len(vehicle_events)} record(s) → topic: {TOPIC_VEHICLES}")
 
-        # Flush ensures every message is delivered before the process exits
-        producer.flush(timeout=10)
+        producer.flush(timeout=10) # produce() does not immediately send the message to Kafka. It first
+        # stores it in an internal memory buffer and sends them asynchronously in background. Flush tells 
+        # kafka "Don't exit until every buffered message has either been delivered or failed."
 
         logger.info("=" * 60)
         logger.info("Batch producer completed successfully.")

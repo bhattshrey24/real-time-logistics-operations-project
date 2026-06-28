@@ -1,4 +1,3 @@
-# stream_producer.py
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point for the streaming data generator.
 # Runs a tick-based loop every second that either creates a new shipment
@@ -141,7 +140,7 @@ def main():
 
             # ── ADVANCE EXISTING SHIPMENT ─────────────────────────────────────
             else:
-                shipment_id = pick_shipment_to_advance()
+                shipment_id = pick_shipment_to_advance() 
                 if shipment_id is None:
                     # Shouldn't happen since we check active_count, but guard anyway
                     time.sleep(TICK_INTERVAL_SECONDS)

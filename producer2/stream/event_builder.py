@@ -1,8 +1,5 @@
-# event_builder.py
 # ─────────────────────────────────────────────────────────────────────────────
 # Builds Kafka-ready payload dicts from a Shipment object.
-# These functions know nothing about Kafka — they just return Python dicts.
-# All field names match the agreed payload specs exactly.
 #
 # Two public functions:
 #   build_order_event(shipment)    → payload for `orders` topic
@@ -52,8 +49,8 @@ def build_shipment_event(shipment: Shipment) -> dict:
     Represents a tracking event from the TMS (Transportation Management System).
 
     Facility logic:
-        FC stages (ORDER_ALLOCATED_TO_FC → DISPATCHED_FROM_FC) → facility = FC
-        DS stages (RECEIVED_AT_DS → DELIVERED)                 → facility = DS
+        FC stages (ORDER_ALLOCATED_TO_FC to DISPATCHED_FROM_FC) → facility = FC
+        DS stages (RECEIVED_AT_DS to DELIVERED)                 → facility = DS
 
     Vehicle logic:
         ORDER_ALLOCATED_TO_FC, PICKED_AND_PACKED → no vehicle yet         (None)
