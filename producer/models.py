@@ -9,18 +9,7 @@ from typing import Optional
 
 @dataclass
 class Shipment:
-    """
-    Tracks an active in-flight shipment through its full lifecycle.
-    Created at ORDER_ALLOCATED_TO_FC, removed from memory once DELIVERED.
-    
-    Fields never change after creation:
-        shipment_id, order_id, customer_id, customer_tier,
-        delivery_type, order_value, fc_id, ds_id, promised_delivery_time
-
-    Fields updated at each stage transition:
-        current_status, eta, is_delayed, delay_minutes,
-        assigned_truck_id, assigned_bike_id
-    """
+    """Tracks an active in-flight shipment from ORDER_ALLOCATED_TO_FC through DELIVERED."""
     shipment_id:             str
     order_id:                str
     customer_id:             str
@@ -42,16 +31,7 @@ class Shipment:
 
 @dataclass
 class Vehicle:
-    """
-    Represents a truck or bike with a mutable availability status.
-    Trucks handle the FC → DS leg (capacity: 200 shipments).
-    Bikes handle the DS → Customer last-mile leg (capacity: 10 shipments).
-
-    Only bike status is actively managed in the stream simulation —
-    bikes are marked IN_USE at ASSIGNED_TO_DRIVER and AVAILABLE again after DELIVERED.
-    Trucks are referenced by ID in events but their status is not toggled per shipment
-    since a single truck carries many shipments simultaneously.
-    """
+    """Represents a truck (FC→DS leg) or bike (DS→Customer leg) with a mutable availability status."""
     vehicle_id:         str
     vehicle_type:       str    # TRUCK or BIKE
     home_facility_id:   str    # FC for trucks, DS for bikes

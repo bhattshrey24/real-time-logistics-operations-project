@@ -17,15 +17,7 @@ from utils import now_utc, to_iso, next_event_id, jitter_coords
 
 
 def build_order_event(shipment: Shipment) -> dict:
-    """
-    Builds the payload for the `orders` Kafka topic.
-
-    Published ONCE per shipment — only at ORDER_ALLOCATED_TO_FC stage.
-    Represents an order coming in from the OMS (Order Management System).
-
-    Note: order_status is always "ALLOCATED_TO_FC" here because orders
-    are only published to this topic at the moment of FC allocation.
-    """
+    """Builds the `orders` topic payload. Published once per shipment at ORDER_ALLOCATED_TO_FC."""
     return {
         "order_id":               shipment.order_id,
         "event_timestamp":        to_iso(now_utc()),
@@ -43,45 +35,27 @@ def build_order_event(shipment: Shipment) -> dict:
 
 def build_shipment_event(shipment: Shipment) -> dict:
     """
-    Builds the payload for the `shipment_events` Kafka topic.
-
-    Published at EVERY lifecycle stage transition.
-    Represents a tracking event from the TMS (Transportation Management System).
-
-    Facility logic:
-        FC stages (ORDER_ALLOCATED_TO_FC to DISPATCHED_FROM_FC) → facility = FC
-        DS stages (RECEIVED_AT_DS, ASSIGNED_TO_DRIVER)          → facility = DS
-        Last-mile (OUT_FOR_DELIVERY, DELIVERED)                 → facility = None (package is with driver)
-
-    Vehicle logic:
-        ORDER_ALLOCATED_TO_FC, PICKED_AND_PACKED → no vehicle yet         (None)
-        DISPATCHED_FROM_FC, RECEIVED_AT_DS       → truck (FC → DS leg)
-        ASSIGNED_TO_DRIVER, OUT_FOR_DELIVERY, DELIVERED → bike (last-mile)
-
-    Extra fields beyond the base spec (useful for downstream dashboards):
-        promised_delivery_time → needed to calculate SLA breach
-        customer_tier, delivery_type → needed to flag Prime / Same-Day shipments
-        is_delayed, delay_minutes → pre-computed delay signals for alert consumers
-        latitude, longitude → jittered GPS near the current facility (or last known DS for last-mile stages)
+    Builds the `shipment_events` topic payload. Published at every lifecycle stage transition.
+    Resolves facility and vehicle based on current stage, and attaches jittered GPS coordinates.
     """
     status        = shipment.current_status
     facility_type = STAGE_TO_FACILITY_TYPE[status]
 
     # Resolve facility id and GPS base coordinates
     if facility_type == FACILITY_TYPE_FC:
-        facility_id  = shipment.fc_id
-        gps_base     = FULFILLMENT_CENTERS[facility_id]
+        facility_id     = shipment.fc_id
+        facility_coords = FULFILLMENT_CENTERS[facility_id]
     elif facility_type == FACILITY_TYPE_DS:
-        facility_id  = shipment.ds_id
-        gps_base     = DELIVERY_STATIONS[facility_id]
+        facility_id     = shipment.ds_id
+        facility_coords = DELIVERY_STATIONS[facility_id]
     else:
         # OUT_FOR_DELIVERY / DELIVERED: package is with the driver, no facility.
         # Use DS coords as the GPS anchor since that's the last known fixed location.
-        facility_id  = None
-        gps_base     = DELIVERY_STATIONS[shipment.ds_id]
+        facility_id     = None
+        facility_coords = DELIVERY_STATIONS[shipment.ds_id]
 
     # GPS: small random offset around the base location (~1 km radius)
-    latitude, longitude = jitter_coords(gps_base["latitude"], gps_base["longitude"])
+    latitude, longitude = jitter_coords(facility_coords["latitude"], facility_coords["longitude"])
 
     return {
         # ── Core identifiers ──────────────────────────────────────────────────
@@ -122,15 +96,7 @@ def build_shipment_event(shipment: Shipment) -> dict:
 # ── PRIVATE HELPERS ───────────────────────────────────────────────────────────
 
 def _resolve_vehicle_id(shipment: Shipment):
-    """
-    Determines which vehicle_id to include in the shipment event
-    based on the current lifecycle stage.
-
-    Returns:
-        truck_id  → at DISPATCHED_FROM_FC and RECEIVED_AT_DS (FC → DS leg)
-        bike_id   → at ASSIGNED_TO_DRIVER, OUT_FOR_DELIVERY, DELIVERED (last-mile)
-        None      → before any vehicle is assigned (ORDER_ALLOCATED_TO_FC, PICKED_AND_PACKED)
-    """
+    """Returns the truck_id (FC→DS leg), bike_id (last-mile), or None (no vehicle assigned yet)."""
     status = shipment.current_status
 
     if status in ("DISPATCHED_FROM_FC", "RECEIVED_AT_DS"):

@@ -57,10 +57,7 @@ logger = logging.getLogger(__name__)
 # ── KAFKA HELPERS ─────────────────────────────────────────────────────────────
 
 def delivery_report(err, msg):
-    """
-    Callback fired by Confluent Kafka after each message is delivered or fails.
-    Runs asynchronously — does not block the main loop.
-    """
+    """Async Kafka delivery callback — logs success or failure per message."""
     if err:
         logger.error(f"Delivery failed | topic={msg.topic()} | error={err}")
     else:
@@ -71,15 +68,7 @@ def delivery_report(err, msg):
 
 
 def publish(producer: Producer, topic: str, key: str, payload: dict) -> None:
-    """
-    Serializes a payload dict to JSON and produces it to the given Kafka topic.
-
-    Key is the shipment_id or order_id — ensures all events for the same
-    shipment land on the same partition (preserving ordering per shipment).
-
-    producer.poll(0) is non-blocking: it only triggers already-ready callbacks.
-    The final flush() at the end of each tick ensures nothing is left buffered.
-    """
+    """Serializes payload to JSON and produces it to Kafka. Key is shipment/order ID to preserve per-shipment ordering."""
     producer.produce(
         topic    = topic,
         key      = key,

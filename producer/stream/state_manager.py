@@ -32,7 +32,7 @@ from utils import (
     random_customer_tier,
     random_delivery_type,
     random_order_value,
-    sample_delay_minutes,
+    random_delay_minutes,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,10 +53,7 @@ def get_active_count() -> int:
 
 
 def pick_shipment_to_advance() -> Optional[str]:
-    """
-    Picks a random shipment_id from the active pool.
-    Returns None if no shipments are currently active.
-    """
+    """Picks a random shipment_id from the active pool. Returns None if pool is empty."""
     if not _active_shipments:
         return None
     return random.choice(list(_active_shipments.keys()))
@@ -64,15 +61,8 @@ def pick_shipment_to_advance() -> Optional[str]:
 
 def create_shipment() -> Shipment:
     """
-    Creates a new shipment at the ORDER_ALLOCATED_TO_FC stage.
-
-    Steps:
-    1. Randomly picks a Fulfillment Center and a Delivery Station under it.
-    2. Generates IDs and randomizes customer attributes.
-    3. Calculates promised delivery time based on SLA.
-    4. Decides upfront if this shipment will be delayed (once, at creation).
-    5. Calculates initial ETA including any delay.
-    6. Adds shipment to the active pool and returns it.
+    Creates a new shipment at ORDER_ALLOCATED_TO_FC, assigns it an FC/DS, randomizes
+    customer attributes, and decides upfront whether it will be delayed.
     """
     # Pick a random FC, then a DS that belongs to it
     fc_id = random.choice(list(FULFILLMENT_CENTERS.keys()))
@@ -87,7 +77,7 @@ def create_shipment() -> Shipment:
 
     # Delay is decided once at creation — it persists through all stages
     is_delayed    = random.random() < DELAY_PROBABILITY
-    delay_minutes = sample_delay_minutes(delivery_type) if is_delayed else 0
+    delay_minutes = random_delay_minutes(delivery_type) if is_delayed else 0
 
     shipment = Shipment(
         shipment_id            = next_shipment_id(),
@@ -112,17 +102,8 @@ def create_shipment() -> Shipment:
 def advance_shipment(shipment_id: str) -> Optional[Shipment]:
     """
     Moves an active shipment to the next lifecycle stage.
-
-    Stage-specific logic:
-    - DISPATCHED_FROM_FC  → assigns the FC's truck to the shipment
-    - ASSIGNED_TO_DRIVER  → finds an available bike at the DS, marks it IN_USE.
-                            Returns None if no bike is available (both busy).
-
-    For all stages:
-    - Updates current_status to the next stage.
-    - Recalculates ETA from now, carrying forward any delay.
-
-    Returns the updated Shipment, or None if the advance could not be completed.
+    Handles vehicle assignment at DISPATCHED_FROM_FC (truck) and ASSIGNED_TO_DRIVER (bike).
+    Returns None if the shipment can't advance (bike unavailable or already delivered).
     """
     shipment = _active_shipments.get(shipment_id)
     if shipment is None:
@@ -149,11 +130,11 @@ def advance_shipment(shipment_id: str) -> Optional[Shipment]:
     elif next_status == "ASSIGNED_TO_DRIVER":
         # Find the first available bike at this shipment's Delivery Station
         bike_ids        = DS_TO_BIKES_MAP[shipment.ds_id]
-        available_bike  = next(
+        available_bike_id = next(
             (bid for bid in bike_ids if VEHICLES[bid].status == "AVAILABLE"),
             None,
         )
-        if available_bike is None:
+        if available_bike_id is None:
             # Both bikes are currently IN_USE — skip this shipment for now
             logger.warning(
                 f"No available bike at {shipment.ds_id} for {shipment_id}. "
@@ -162,8 +143,8 @@ def advance_shipment(shipment_id: str) -> Optional[Shipment]:
             return None
 
         # Claim the bike — it will be released in remove_shipment() after DELIVERED
-        VEHICLES[available_bike].status = "IN_USE"
-        shipment.assigned_bike_id       = available_bike
+        VEHICLES[available_bike_id].status = "IN_USE"
+        shipment.assigned_bike_id         = available_bike_id
 
     # ── COMMON UPDATE FOR ALL STAGES ──────────────────────────────────────────
     shipment.current_status = next_status
@@ -174,14 +155,7 @@ def advance_shipment(shipment_id: str) -> Optional[Shipment]:
 
 
 def remove_shipment(shipment_id: str) -> None:
-    """
-    Removes a delivered shipment from the active pool and frees its assigned bike.
-    Called by stream_producer AFTER the DELIVERED event has been published.
-
-    Order matters:
-    1. Pop the shipment (stop it from being picked for further advancement).
-    2. Free the bike (make it available for the next shipment at this DS).
-    """
+    """Removes a delivered shipment from the active pool and frees its assigned bike."""
     shipment = _active_shipments.pop(shipment_id, None)
     if shipment is None:
         return
