@@ -1,3 +1,5 @@
 .env
 README.md
 __pycache__/
+.venv/
+airflow/logs/
