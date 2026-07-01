@@ -192,23 +192,23 @@ services:
   #   --conf spark.eventLog.enabled=true
   #   --conf spark.eventLog.dir=file:/opt/spark/logs
   # ─────────────────────────────────────────────────────────────
-  # spark-history:
-  #   image: apache/spark:4.1.2
-  #   container_name: spark-history
-  #   hostname: spark-history
-  #   depends_on:
-  #     - spark-master
-  #   command: >
-  #     /opt/spark/bin/spark-class
-  #     org.apache.spark.deploy.history.HistoryServer
-  #   ports:
-  #     - "18080:18080"  # History Server Web UI
-  #   environment:
-  #     SPARK_NO_DAEMONIZE: "true"
-  #     SPARK_HISTORY_OPTS: >-
-  #       -Dspark.history.fs.logDirectory=file:/opt/spark/logs
-  #   volumes:
-  #     - ./spark/logs:/opt/spark/logs   # same mount as master + worker
+  spark-history:
+    image: apache/spark:4.0.0
+    container_name: spark-history
+    hostname: spark-history
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.history.HistoryServer
+    ports:
+      - "18080:18080"  # History Server Web UI
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_HISTORY_OPTS: >-
+        -Dspark.history.fs.logDirectory=file:/opt/spark/logs
+    volumes:
+      - ./spark/logs:/opt/spark/logs   # same mount as master + worker
 
   # ─────────────────────────────────────────
   # POSTGRES

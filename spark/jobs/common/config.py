@@ -24,6 +24,30 @@ TOPIC_VEHICLES            = "vehicles"
 TOPIC_ORDERS              = "orders"
 TOPIC_SHIPMENT_EVENTS     = "shipment_events"
 
+# ── POSTGRESQL ────────────────────────────────────────────────────────────────
+# Used by Script 4 to write enriched events for the Grafana RT dashboard.
+POSTGRES_HOST     = os.getenv("POSTGRES_HOST",     "postgres")
+POSTGRES_PORT     = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_USER     = os.getenv("POSTGRES_USER",     "airflow")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "airflow")
+LOGISTICS_DB      = os.getenv("LOGISTICS_DB",      "logistics_rt")  # separate from Airflow's DB
+
+# ── SMTP (alert emails) ───────────────────────────────────────────────────────
+SMTP_HOST     = os.getenv("SMTP_HOST",     "")
+SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER     = os.getenv("SMTP_USER",     "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "")
+
+# ── ALERT THRESHOLDS ──────────────────────────────────────────────────────────
+# Kept here so all scripts share the same values (mirrors producer/config.py).
+DELAY_ALERT_THRESHOLD_MINUTES = {"SAME_DAY": 30,  "STANDARD": 120}
+ETA_CHANGE_ALERT_MINUTES      = {"SAME_DAY": 30,  "STANDARD": 120}
+FC_BACKLOG_THRESHOLD          = 10   # Alert if FC backlog exceeds this
+DS_BACKLOG_THRESHOLD          = 8    # Alert if DS backlog exceeds this
+FC_STALE_THRESHOLD_HOURS      = 4    # Shipment stuck at FC for > 4 hours
+DS_STALE_THRESHOLD_HOURS      = 1    # Shipment stuck at DS for > 1 hour
+
 # ── STORAGE LAYER PATH BUILDERS ───────────────────────────────────────────────
 # All scripts use these helpers so paths are consistent across the pipeline.
 
