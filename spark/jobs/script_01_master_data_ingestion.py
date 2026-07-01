@@ -13,10 +13,10 @@
 #   1. Kafka topics must contain messages (run batch_producer.py first).
 #   2. The MinIO bucket "logistics" must exist (create via http://localhost:9001).
 #
-# Submit command (from inside Docker or against the cluster):
-#   spark-submit \
+# Submit command:
+#   docker exec -it spark-master \
+#     /opt/spark/bin/spark-submit \
 #     --master spark://spark-master:7077 \
-#     --packages <delta>,<kafka-connector>,<hadoop-aws>,<aws-sdk> \
 #     /opt/spark/jobs/script_01_master_data_ingestion.py
 # ─────────────────────────────────────────────────────────────────────────────
 

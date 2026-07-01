@@ -14,9 +14,9 @@
 #   s3a://logistics/bronze/master/vehicles/
 #
 # Submit command:
-#   spark-submit \
+#   docker exec -it spark-master \
+#     /opt/spark/bin/spark-submit \
 #     --master spark://spark-master:7077 \
-#     --packages <delta>,<hadoop-aws>,<aws-sdk> \
 #     /opt/spark/jobs/script_02_master_data_bronze.py
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -22,9 +22,9 @@
 #   s3a://logistics/silver/master/vehicles/
 #
 # Submit command:
-#   spark-submit \
+#   docker exec -it spark-master \
+#     /opt/spark/bin/spark-submit \
 #     --master spark://spark-master:7077 \
-#     --packages <delta>,<hadoop-aws>,<aws-sdk> \
 #     /opt/spark/jobs/script_03_master_data_silver.py
 # ─────────────────────────────────────────────────────────────────────────────
 

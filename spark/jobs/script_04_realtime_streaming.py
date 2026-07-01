@@ -27,11 +27,6 @@
 #   docker exec -it spark-master \
 #     /opt/spark/bin/spark-submit \
 #     --master spark://spark-master:7077 \
-#     --conf spark.jars.ivy=/tmp/.ivy \
-#     --packages io.delta:delta-spark_2.13:4.0.0,\
-#                org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0,\
-#                org.apache.hadoop:hadoop-aws:3.4.0,\
-#                com.amazonaws:aws-java-sdk-bundle:1.12.720 \
 #     /opt/spark/jobs/script_04_realtime_streaming.py
 # ─────────────────────────────────────────────────────────────────────────────
 
