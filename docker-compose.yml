@@ -291,7 +291,10 @@ services:
   # Parses DAGs and triggers task instances
   # ─────────────────────────────────────────
   airflow-scheduler:
-    image: apache/airflow:2.9.2
+    # Custom image — adds Docker CLI so BashOperator can run 'docker exec spark-master spark-submit'
+    build:
+      context: .
+      dockerfile: dockerfile-airflow.dockerfile
     container_name: airflow-scheduler
     hostname: airflow-scheduler
     depends_on:
@@ -308,6 +311,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - /var/run/docker.sock:/var/run/docker.sock   # lets the scheduler run 'docker exec'
     command: scheduler
 
   # ─────────────────────────────────────────────────────────────────────────────
