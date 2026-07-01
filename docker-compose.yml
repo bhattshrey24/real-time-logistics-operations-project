@@ -310,6 +310,31 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
     command: scheduler
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # GRAFANA
+  # Real-Time Operations Dashboard — access at http://localhost:3000
+  # Default login: admin / admin
+  # Datasource and dashboard are auto-provisioned from grafana/provisioning/
+  # ─────────────────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Pass postgres credentials so the datasource provisioning file can read them
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning    # datasource + dashboard providers
+      - ./grafana/dashboards:/var/lib/grafana/dashboards    # dashboard JSON files
+      - grafana-data:/var/lib/grafana                       # persists Grafana state (users, settings)
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 # This stores our kafka data/ messages and MinIO data into docker storage , otherwise if we run "docker compose down"
 # then everything will be deleted from kafka and minIo
 volumes:
@@ -318,3 +343,4 @@ volumes:
   kafka-3-data:
   minio-data:
   postgres-data:
+  grafana-data:

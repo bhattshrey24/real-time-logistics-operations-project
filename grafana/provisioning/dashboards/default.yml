@@ -1,0 +1,12 @@
+# Tells Grafana where to find dashboard JSON files.
+# Any .json file placed in /var/lib/grafana/dashboards is loaded automatically.
+apiVersion: 1
+
+providers:
+  - name: default
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30    # re-reads the folder every 30s for changes
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

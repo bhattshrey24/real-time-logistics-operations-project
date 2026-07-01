@@ -1,0 +1,504 @@
+{
+  "title": "Real-Time Operations Dashboard",
+  "description": "Live logistics KPIs — 1-minute auto-refresh. All panels query shipment_live, the PostgreSQL table maintained by Spark Script 4.",
+  "uid": "logistics-rt-ops",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["logistics", "realtime", "operations"],
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "templating": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Active Shipments",
+      "description": "Shipments in any status except DELIVERED",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value\nFROM shipment_live\nWHERE shipment_status != 'DELIVERED'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Delayed Shipments",
+      "description": "Active shipments flagged as delayed by the stream producer",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value\nFROM shipment_live\nWHERE is_delayed = true\n  AND shipment_status != 'DELIVERED'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 30 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "SLA At Risk",
+      "description": "Active shipments where estimated delivery time exceeds the promised time",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS value\nFROM shipment_live\nWHERE is_sla_at_risk = true\n  AND shipment_status != 'DELIVERED'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Avg Delay (min)",
+      "description": "Average delay in minutes across all currently delayed active shipments",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(ROUND(AVG(delay_minutes)), 0) AS value\nFROM shipment_live\nWHERE is_delayed = true\n  AND shipment_status != 'DELIVERED'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Shipments by Status",
+      "description": "Count of all shipments grouped by current status stage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT shipment_status AS \"Status\", COUNT(*) AS \"Count\"\nFROM shipment_live\nGROUP BY shipment_status\nORDER BY \"Count\" DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Status",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Shipments by Customer Tier",
+      "description": "Active shipment count per customer tier (PRIME vs STANDARD) — PRIME shipments are prioritised",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT customer_tier AS \"Tier\", COUNT(*) AS \"Count\"\nFROM shipment_live\nWHERE shipment_status != 'DELIVERED'\nGROUP BY customer_tier\nORDER BY \"Count\" DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Tier",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "FC Backlog by Facility",
+      "description": "Shipments sitting at Fulfillment Centers (ORDER_ALLOCATED_TO_FC or PICKED_AND_PACKED). Alert threshold: 10 shipments.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(fc_name, facility_id) AS \"Facility\", COUNT(*) AS \"Backlog\"\nFROM shipment_live\nWHERE shipment_status IN ('ORDER_ALLOCATED_TO_FC', 'PICKED_AND_PACKED')\nGROUP BY facility_id, fc_name\nORDER BY \"Backlog\" DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Facility",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 7 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "DS Backlog by Facility",
+      "description": "Shipments sitting at Delivery Stations (RECEIVED_AT_DS or ASSIGNED_TO_DRIVER). Alert threshold: 8 shipments.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(ds_name, facility_id) AS \"Facility\", COUNT(*) AS \"Backlog\"\nFROM shipment_live\nWHERE shipment_status IN ('RECEIVED_AT_DS', 'ASSIGNED_TO_DRIVER')\nGROUP BY facility_id, ds_name\nORDER BY \"Backlog\" DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Facility",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 8 }
+            ]
+          },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Stale at Fulfillment Center (> 4 hours)",
+      "description": "Shipments that haven't moved from a FC in over 4 hours — triggers alert 6 in Script 4",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  shipment_id        AS \"Shipment\",\n  shipment_status    AS \"Status\",\n  COALESCE(fc_name, facility_id) AS \"FC\",\n  stage_entered_at   AS \"Stuck Since\",\n  ROUND(EXTRACT(EPOCH FROM (NOW() - stage_entered_at)) / 3600, 1) AS \"Hours Stuck\"\nFROM shipment_live\nWHERE\n  facility_type = 'FULFILLMENT_CENTER'\n  AND stage_entered_at < NOW() - INTERVAL '4 hours'\n  AND shipment_status NOT IN ('DISPATCHED_FROM_FC', 'DELIVERED')\nORDER BY stage_entered_at ASC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Hours Stuck" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "yellow", "value": null },
+                    { "color": "red", "value": 8 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Stale at Delivery Station (> 1 hour)",
+      "description": "Shipments that haven't moved from a DS in over 1 hour — triggers alert 6 in Script 4",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  shipment_id        AS \"Shipment\",\n  shipment_status    AS \"Status\",\n  COALESCE(ds_name, facility_id) AS \"DS\",\n  stage_entered_at   AS \"Stuck Since\",\n  ROUND(EXTRACT(EPOCH FROM (NOW() - stage_entered_at)) / 3600, 1) AS \"Hours Stuck\"\nFROM shipment_live\nWHERE\n  facility_type = 'DELIVERY_STATION'\n  AND stage_entered_at < NOW() - INTERVAL '1 hour'\n  AND shipment_status NOT IN ('OUT_FOR_DELIVERY', 'DELIVERED')\nORDER BY stage_entered_at ASC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Hours Stuck" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "yellow", "value": null },
+                    { "color": "red", "value": 3 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Live Shipment Feed",
+      "description": "Last 25 shipments updated by Script 4 — ordered by most recent event first",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 29 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  shipment_id                                     AS \"Shipment\",\n  shipment_status                                 AS \"Status\",\n  customer_tier                                   AS \"Tier\",\n  delivery_type                                   AS \"Delivery Type\",\n  is_delayed                                      AS \"Delayed\",\n  delay_minutes                                   AS \"Delay (min)\",\n  is_sla_at_risk                                  AS \"SLA Risk\",\n  COALESCE(fc_name, ds_name, facility_id)         AS \"Facility\",\n  last_updated                                    AS \"Last Updated\"\nFROM shipment_live\nORDER BY last_updated DESC\nLIMIT 25",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Delayed" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true":  { "text": "Yes", "color": "red",   "index": 0 },
+                      "false": { "text": "No",  "color": "green", "index": 1 }
+                    }
+                  }
+                ]
+              },
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SLA Risk" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true":  { "text": "At Risk", "color": "red",   "index": 0 },
+                      "false": { "text": "OK",       "color": "green", "index": 1 }
+                    }
+                  }
+                ]
+              },
+              { "id": "custom.displayMode", "value": "color-background" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tier" },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "PRIME":    { "text": "PRIME",    "color": "gold",  "index": 0 },
+                      "STANDARD": { "text": "STANDARD", "color": "blue",  "index": 1 }
+                    }
+                  }
+                ]
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    }
+
+  ]
+}

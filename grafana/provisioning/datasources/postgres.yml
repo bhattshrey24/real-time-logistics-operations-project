@@ -1,0 +1,20 @@
+# Grafana datasource provisioning — auto-loaded on container start.
+# Points to the logistics_rt PostgreSQL database populated by Script 4.
+# Password is read from the POSTGRES_PASSWORD env var (injected via env_file in docker-compose).
+apiVersion: 1
+
+datasources:
+  - name: Logistics PostgreSQL
+    type: postgres
+    uid: logistics-postgres
+    url: postgres:5432           # internal Docker hostname
+    user: airflow
+    secureJsonData:
+      password: airflow
+    jsonData:
+      database: logistics_rt    # separate DB from Airflow; created by Script 4
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false
+    isDefault: true
+    editable: false
