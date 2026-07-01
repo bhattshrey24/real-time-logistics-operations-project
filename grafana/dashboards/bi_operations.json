@@ -1,0 +1,534 @@
+{
+  "title": "BI Operations Dashboard",
+  "description": "Business Intelligence KPIs — refreshed when Script 9 runs. All panels query pre-aggregated bi_* tables in PostgreSQL populated by Script 9.",
+  "uid": "logistics-bi",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1h",
+  "time": { "from": "now-1y", "to": "now" },
+  "timezone": "browser",
+  "tags": ["logistics", "bi", "business-intelligence"],
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "templating": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Shipments",
+      "description": "All shipments tracked in fact_shipment (all statuses)",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT total_shipments AS value FROM bi_logistics_kpis",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "On-Time Delivery %",
+      "description": "% of delivered shipments that arrived before the promised delivery time",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT on_time_pct AS value FROM bi_logistics_kpis",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 85 },
+              { "color": "green",  "value": 95 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg Delay (min)",
+      "description": "Average delay in minutes across all delayed active shipments",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT avg_delay_min AS value FROM bi_logistics_kpis",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red",    "value": 60 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "SLA Breach %",
+      "description": "% of delivered shipments that breached the SLA (delivered after promised time)",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT sla_breach_pct AS value FROM bi_logistics_kpis",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red",    "value": 15 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Warehouse Performance (by Fulfillment Center)",
+      "description": "Shipment volume, average FC dispatch time, and delayed % per FC. Source: bi_warehouse_performance",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  fc_name          AS \"FC Name\",\n  region           AS \"Region\",\n  shipment_volume  AS \"Volume\",\n  avg_fc_time_min  AS \"Avg Dispatch (min)\",\n  delayed_count    AS \"Delayed\",\n  delayed_pct      AS \"Delayed %\"\nFROM bi_warehouse_performance\nORDER BY shipment_volume DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Delayed %" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 10 },
+                    { "color": "red",    "value": 25 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg Dispatch (min)" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 60 },
+                    { "color": "red",    "value": 120 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Delivery Station Performance",
+      "description": "Shipment volume, average DS processing time, and delayed % per DS. Source: bi_delivery_station_perf",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ds_name          AS \"DS Name\",\n  region           AS \"Region\",\n  shipment_volume  AS \"Volume\",\n  avg_ds_time_min  AS \"Avg Process (min)\",\n  delayed_count    AS \"Delayed\",\n  delayed_pct      AS \"Delayed %\"\nFROM bi_delivery_station_perf\nORDER BY shipment_volume DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Delayed %" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 10 },
+                    { "color": "red",    "value": 25 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Avg Process (min)" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 30 },
+                    { "color": "red",    "value": 60 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Monthly Shipment Volume",
+      "description": "Total shipments per month. Source: bi_monthly_trends",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT month_name AS \"Month\", shipment_volume AS \"Shipments\"\nFROM bi_monthly_trends\nORDER BY year, month",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Month",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Monthly On-Time Delivery %",
+      "description": "On-time delivery rate per month. Green ≥ 95%, yellow ≥ 85%. Source: bi_monthly_trends",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT month_name AS \"Month\", on_time_pct AS \"On-Time %\"\nFROM bi_monthly_trends\nORDER BY year, month",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Month",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 85 },
+              { "color": "green",  "value": 95 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Monthly Avg Delay (min)",
+      "description": "Average delay in minutes per month. Source: bi_monthly_trends",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT month_name AS \"Month\", avg_delay_min AS \"Avg Delay (min)\"\nFROM bi_monthly_trends\nORDER BY year, month",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "xField": "Month",
+        "orientation": "auto",
+        "barRadius": 0.1,
+        "groupWidth": 0.7,
+        "fillOpacity": 80,
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "showLegend": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red",    "value": 60 }
+            ]
+          },
+          "custom": { "fillOpacity": 80, "lineWidth": 0 }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Cost & Penalty Summary",
+      "description": "Total transport costs, SLA penalties, and customer refunds by delivery type. All values are estimates computed in Script 8. Source: bi_cost_penalty",
+      "gridPos": { "h": 7, "w": 14, "x": 0, "y": 21 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  delivery_type        AS \"Delivery Type\",\n  total_shipments      AS \"Shipments\",\n  total_transport_cost AS \"Transport Cost ($)\",\n  total_sla_penalty    AS \"SLA Penalty ($)\",\n  total_refunds        AS \"Refunds ($)\",\n  avg_order_value      AS \"Avg Order ($)\"\nFROM bi_cost_penalty\nORDER BY total_shipments DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "SLA Penalty ($)" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 1000 },
+                    { "color": "red",    "value": 5000 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Refunds ($)" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 500 },
+                    { "color": "red",    "value": 2000 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Delivery Lead Time",
+      "description": "Average, min, and max end-to-end lead time (FC receipt → delivery) by delivery type. Only includes completed deliveries. Source: bi_lead_time",
+      "gridPos": { "h": 7, "w": 10, "x": 14, "y": 21 },
+      "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "logistics-postgres" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  delivery_type     AS \"Delivery Type\",\n  shipment_count    AS \"Shipments\",\n  avg_lead_time_hrs AS \"Avg (hrs)\",\n  min_lead_time_hrs AS \"Min (hrs)\",\n  max_lead_time_hrs AS \"Max (hrs)\"\nFROM bi_lead_time",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "frameIndex": 0, "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Avg (hrs)" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green",  "value": null },
+                    { "color": "yellow", "value": 24 },
+                    { "color": "red",    "value": 48 }
+                  ]
+                }
+              },
+              { "id": "custom.displayMode", "value": "color-text" }
+            ]
+          }
+        ]
+      }
+    }
+
+  ]
+}
