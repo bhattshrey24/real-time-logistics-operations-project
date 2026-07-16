@@ -27,7 +27,7 @@ PostgreSQL acts as the serving layer for both dashboards:
 
 ### Dimensional Model (Gold Layer)
 ```text
-                         ┌──────────────────┐
+                         ┌───────────────────┐
                          │   fact_shipment   │
                          └─────────┬─────────┘
         ┌────────────────┬──────────┼──────────┬───────────────┐───────────┐
